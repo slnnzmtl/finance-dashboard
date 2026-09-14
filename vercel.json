@@ -1,0 +1,15 @@
+{
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": ".output/public"
+      }
+    }
+  ],
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/200.html" }
+  ]
+}
