@@ -6,6 +6,7 @@ import {
   normalizeExpenses,
   parseExpenseCreateInput,
   resolveCategoryName,
+  sortCategoriesByUsage,
   todayIsoDate,
   type Category,
   type Expense,
@@ -51,6 +52,79 @@ describe('normalizeExpenses', () => {
     ] as Category[])
 
     expect(nameById.get(expenses[0]!.category)).toBe('Food')
+  })
+})
+
+describe('sortCategoriesByUsage', () => {
+  const categories: Category[] = [
+    { id: '1', created_at: '', name: 'Zebra', note: null },
+    { id: '2', created_at: '', name: 'Apple', note: null },
+    { id: '3', created_at: '', name: 'Banana', note: null },
+    { id: '4', created_at: '', name: 'Unused', note: null },
+  ]
+
+  it('orders by usage count descending', () => {
+    const expenses = [
+      expense({ id: 'a', category: '1', amount: 1, paid_date: '2026-01-01' }),
+      expense({ id: 'b', category: '3', amount: 1, paid_date: '2026-01-01' }),
+      expense({ id: 'c', category: '3', amount: 1, paid_date: '2026-01-01' }),
+      expense({ id: 'd', category: '3', amount: 1, paid_date: '2026-01-01' }),
+      expense({ id: 'e', category: '2', amount: 1, paid_date: '2026-01-01' }),
+      expense({ id: 'f', category: '2', amount: 1, paid_date: '2026-01-01' }),
+    ]
+    expect(sortCategoriesByUsage(categories, expenses).map(c => c.name)).toEqual([
+      'Banana',
+      'Apple',
+      'Zebra',
+      'Unused',
+    ])
+  })
+
+  it('keeps unused categories last, sorted by name', () => {
+    const cats: Category[] = [
+      { id: '1', created_at: '', name: 'Used', note: null },
+      { id: '2', created_at: '', name: 'Zebra', note: null },
+      { id: '3', created_at: '', name: 'Apple', note: null },
+    ]
+    const expenses = [
+      expense({ id: 'a', category: '1', amount: 1, paid_date: '2026-01-01' }),
+    ]
+    expect(sortCategoriesByUsage(cats, expenses).map(c => c.name)).toEqual([
+      'Used',
+      'Apple',
+      'Zebra',
+    ])
+  })
+
+  it('breaks ties by name', () => {
+    const cats: Category[] = [
+      { id: '1', created_at: '', name: 'Zebra', note: null },
+      { id: '2', created_at: '', name: 'Apple', note: null },
+    ]
+    const expenses = [
+      expense({ id: 'a', category: '1', amount: 1, paid_date: '2026-01-01' }),
+      expense({ id: 'b', category: '2', amount: 1, paid_date: '2026-01-01' }),
+    ]
+    expect(sortCategoriesByUsage(cats, expenses).map(c => c.name)).toEqual([
+      'Apple',
+      'Zebra',
+    ])
+  })
+
+  it('matches numeric category FKs without pre-normalization', () => {
+    const cats = [
+      { id: 1 as unknown as string, created_at: '', name: 'Food', note: null },
+      { id: 2 as unknown as string, created_at: '', name: 'Fuel', note: null },
+    ] as Category[]
+    const expenses = [
+      { category: 1 as unknown as string },
+      { category: 1 as unknown as string },
+    ]
+
+    expect(sortCategoriesByUsage(cats, expenses).map(c => c.name)).toEqual([
+      'Food',
+      'Fuel',
+    ])
   })
 })
 

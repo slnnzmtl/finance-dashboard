@@ -3,10 +3,11 @@ import {
   buildCategoryMonthMatrix,
   buildExpenseQuery,
   categoryNameMap,
+  categoryUsageQuery,
   formatUsd,
-  normalizeCategories,
   normalizeExpenses,
   resolveCategoryName,
+  sortCategoriesByUsage,
   yearBounds,
   type Category,
   type Expense,
@@ -207,12 +208,13 @@ export function useFinanceDashboard() {
       const categoriesQuery = supabase
         .from('category')
         .select('id, created_at, name, note')
-        .order('name', { ascending: true })
+      const usageQuery = categoryUsageQuery(supabase)
 
-      const [categoryRes, yearRes, categoryListRes] = await Promise.all([
+      const [categoryRes, yearRes, categoryListRes, usageRes] = await Promise.all([
         categoryQuery,
         yearQuery,
         categoriesQuery,
+        usageQuery,
       ])
 
       if (generation !== fetchGeneration) return
@@ -220,13 +222,17 @@ export function useFinanceDashboard() {
       if (categoryRes.error) throw categoryRes.error
       if (yearRes.error) throw yearRes.error
       if (categoryListRes.error) throw categoryListRes.error
+      if (usageRes.error) throw usageRes.error
 
       const categoryRows = normalizeExpenses((categoryRes.data ?? []) as Expense[])
       const yearRows = normalizeExpenses((yearRes.data ?? []) as Expense[])
 
       expenses.value = categoryRows
       yearExpenses.value = yearRows
-      categories.value = normalizeCategories((categoryListRes.data ?? []) as Category[])
+      categories.value = sortCategoriesByUsage(
+        (categoryListRes.data ?? []) as Category[],
+        (usageRes.data ?? []) as Pick<Expense, 'category'>[],
+      )
 
       if (
         categories.value.length === 0

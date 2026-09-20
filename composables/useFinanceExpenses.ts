@@ -4,11 +4,12 @@ import {
   EXPENSE_WITH_CATEGORY_SELECT,
   buildExpenseQuery,
   categoryNameMap,
+  categoryUsageQuery,
   formatUsd,
-  normalizeCategories,
   normalizeExpenses,
   parseExpenseCreateInput,
   resolveCategoryName,
+  sortCategoriesByUsage,
   type Category,
   type Expense,
   type ExpenseCreateInput,
@@ -159,7 +160,8 @@ export function useFinanceExpenses() {
       const categoriesQuery = supabase
         .from('category')
         .select('id, created_at, name, note')
-        .order('name', { ascending: true })
+
+      const usageQuery = categoryUsageQuery(supabase)
 
       const joinedQuery = buildExpenseQuery(supabase, {
         from: window.from,
@@ -181,17 +183,22 @@ export function useFinanceExpenses() {
         select: 'amount',
       })
 
-      const [joinedRes, categoryListRes, amountRes] = await Promise.all([
+      const [joinedRes, categoryListRes, amountRes, usageRes] = await Promise.all([
         joinedQuery,
         categoriesQuery,
         amountQuery,
+        usageQuery,
       ])
 
       if (generation !== fetchGeneration) return
 
       if (categoryListRes.error) throw categoryListRes.error
       if (amountRes.error) throw amountRes.error
-      categories.value = normalizeCategories((categoryListRes.data ?? []) as Category[])
+      if (usageRes.error) throw usageRes.error
+      categories.value = sortCategoriesByUsage(
+        (categoryListRes.data ?? []) as Category[],
+        (usageRes.data ?? []) as Pick<Expense, 'category'>[],
+      )
 
       const amountRows = (amountRes.data ?? []) as { amount: number }[]
       totalAmount.value = amountRows.reduce((sum, r) => sum + (r.amount ?? 0), 0)

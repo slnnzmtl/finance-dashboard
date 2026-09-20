@@ -87,6 +87,25 @@ export function normalizeExpenses(rows: Expense[]): Expense[] {
   }))
 }
 
+/** Unused categories (count 0) sort last, then by name. */
+export function sortCategoriesByUsage(
+  categories: Category[],
+  expenses: Pick<Expense, 'category'>[],
+): Category[] {
+  const counts = new Map<string, number>()
+  for (const e of expenses) {
+    const id = String(e.category ?? '')
+    if (!id) continue
+    counts.set(id, (counts.get(id) ?? 0) + 1)
+  }
+
+  return normalizeCategories(categories).sort((a, b) => {
+    const countDiff = (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0)
+    if (countDiff !== 0) return countDiff
+    return a.name.localeCompare(b.name)
+  })
+}
+
 export function categoryNameMap(categories: Category[]): Map<string, string> {
   return new Map(normalizeCategories(categories).map(c => [c.id, c.name]))
 }
@@ -231,6 +250,10 @@ export function parseExpenseCreateInput(
       note,
     },
   }
+}
+
+export function categoryUsageQuery(supabase: SupabaseClient) {
+  return supabase.from('expense').select('category').limit(10000)
 }
 
 export function buildExpenseQuery(
