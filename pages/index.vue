@@ -44,21 +44,42 @@ function formatMatrixAmount(amount: number) {
   return amount > 0 ? formatUsd(amount) : ''
 }
 
+const { isDark } = useTheme()
+
 const monthlyCanvas = ref<HTMLCanvasElement | null>(null)
 const categoryCanvas = ref<HTMLCanvasElement | null>(null)
 let monthlyChart: ChartType | null = null
 let categoryChart: ChartType | null = null
 
 const CATEGORY_COLORS = [
-  'rgba(37, 99, 235, 0.85)',
+  'rgba(59, 130, 246, 0.85)',
   'rgba(14, 165, 233, 0.85)',
   'rgba(20, 184, 166, 0.85)',
   'rgba(234, 179, 8, 0.85)',
   'rgba(249, 115, 22, 0.85)',
   'rgba(239, 68, 68, 0.85)',
   'rgba(168, 85, 247, 0.85)',
-  'rgba(100, 116, 139, 0.85)',
+  'rgba(148, 163, 184, 0.85)',
 ]
+
+function chartCssColor(variable: string, alpha = 1) {
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue(variable)
+    .trim()
+  if (!raw) return `rgba(148, 163, 184, ${alpha})`
+  return `hsl(${raw} / ${alpha})`
+}
+
+function chartTheme() {
+  return {
+    tick: chartCssColor('--chart-tick'),
+    grid: chartCssColor('--chart-grid'),
+    legend: chartCssColor('--foreground'),
+    border: chartCssColor('--background'),
+    barFill: isDark.value ? 'rgba(96, 165, 250, 0.8)' : 'rgba(37, 99, 235, 0.75)',
+    barStroke: isDark.value ? 'rgba(147, 197, 253, 1)' : 'rgba(37, 99, 235, 1)',
+  }
+}
 
 function destroyCharts() {
   monthlyChart?.destroy()
@@ -72,6 +93,7 @@ function renderCharts() {
 
   const monthlyEl = monthlyCanvas.value as ChartItem
   const categoryEl = categoryCanvas.value as ChartItem
+  const theme = chartTheme()
 
   const usdTick = (value: string | number) =>
     formatUsd(typeof value === 'string' ? Number(value) : value)
@@ -85,8 +107,8 @@ function renderCharts() {
           {
             label: 'Spend',
             data: [...monthlyTotals.value.data],
-            backgroundColor: 'rgba(37, 99, 235, 0.75)',
-            borderColor: 'rgba(37, 99, 235, 1)',
+            backgroundColor: theme.barFill,
+            borderColor: theme.barStroke,
             borderWidth: 1,
             borderRadius: 4,
           },
@@ -96,9 +118,16 @@ function renderCharts() {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
+          x: {
+            ticks: { color: theme.tick },
+            grid: { color: theme.grid },
+            border: { color: theme.grid },
+          },
           y: {
             beginAtZero: true,
-            ticks: { callback: usdTick },
+            ticks: { callback: usdTick, color: theme.tick },
+            grid: { color: theme.grid },
+            border: { color: theme.grid },
           },
         },
         plugins: {
@@ -115,6 +144,20 @@ function renderCharts() {
   else {
     monthlyChart.data.labels = [...monthlyTotals.value.labels]
     monthlyChart.data.datasets[0].data = [...monthlyTotals.value.data]
+    monthlyChart.data.datasets[0].backgroundColor = theme.barFill
+    monthlyChart.data.datasets[0].borderColor = theme.barStroke
+    if (monthlyChart.options.scales?.x?.ticks) {
+      monthlyChart.options.scales.x.ticks.color = theme.tick
+    }
+    if (monthlyChart.options.scales?.x?.grid) {
+      monthlyChart.options.scales.x.grid.color = theme.grid
+    }
+    if (monthlyChart.options.scales?.y?.ticks) {
+      monthlyChart.options.scales.y.ticks.color = theme.tick
+    }
+    if (monthlyChart.options.scales?.y?.grid) {
+      monthlyChart.options.scales.y.grid.color = theme.grid
+    }
     monthlyChart.update()
   }
 
@@ -133,7 +176,7 @@ function renderCharts() {
             data: [...categoryTotals.value.data],
             backgroundColor: catColors,
             borderWidth: 1,
-            borderColor: '#fff',
+            borderColor: theme.border,
           },
         ],
       },
@@ -141,7 +184,10 @@ function renderCharts() {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { position: 'bottom' },
+          legend: {
+            position: 'bottom',
+            labels: { color: theme.legend },
+          },
           tooltip: {
             callbacks: {
               label: (ctx) => {
@@ -159,12 +205,16 @@ function renderCharts() {
     categoryChart.data.labels = [...categoryTotals.value.labels]
     categoryChart.data.datasets[0].data = [...categoryTotals.value.data]
     categoryChart.data.datasets[0].backgroundColor = catColors
+    categoryChart.data.datasets[0].borderColor = theme.border
+    if (categoryChart.options.plugins?.legend?.labels) {
+      categoryChart.options.plugins.legend.labels.color = theme.legend
+    }
     categoryChart.update()
   }
 }
 
 watch(
-  [monthlyTotals, categoryTotals, loading],
+  [monthlyTotals, categoryTotals, loading, isDark],
   () => {
     if (loading.value) {
       destroyCharts()
@@ -192,6 +242,7 @@ onBeforeUnmount(() => {
         </p>
       </div>
       <div class="flex items-center gap-4">
+        <ThemeToggle />
         <NuxtLink
           :to="{ path: '/expenses', query: filterQuery }"
           class="text-sm text-primary hover:underline"

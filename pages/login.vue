@@ -35,13 +35,16 @@ async function onSubmit() {
 <template>
   <div class="max-w-6xl mx-auto py-10 px-4">
     <div class="max-w-sm space-y-6">
-      <header>
-        <h1 class="text-3xl font-bold tracking-tight">
-          Sign in
-        </h1>
-        <p class="text-muted-foreground mt-2">
-          Use your account to open restricted pages.
-        </p>
+      <header class="flex items-start justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight">
+            Sign in
+          </h1>
+          <p class="text-muted-foreground mt-2">
+            Use your account to open restricted pages.
+          </p>
+        </div>
+        <ThemeToggle />
       </header>
 
       <form

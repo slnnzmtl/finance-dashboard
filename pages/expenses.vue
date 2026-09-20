@@ -57,6 +57,7 @@ const {
         </p>
       </div>
       <div class="flex items-center gap-4">
+        <ThemeToggle />
         <NuxtLink
           :to="{ path: '/', query: filterQuery }"
           class="text-sm text-primary hover:underline"

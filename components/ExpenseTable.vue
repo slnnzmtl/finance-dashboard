@@ -153,8 +153,8 @@ async function onDelete(row: ExpenseRow) {
 
 <template>
   <div class="space-y-4">
-    <div class="table-h-scroll rounded-md border border-border">
-      <table class="w-max text-sm">
+    <div class="table-h-scroll w-full rounded-md border border-border">
+      <table class="w-full text-sm">
         <thead class="border-b border-border bg-muted/40">
           <tr class="text-left">
             <th
@@ -170,7 +170,7 @@ async function onDelete(row: ExpenseRow) {
               </button>
             </th>
             <th
-              class="whitespace-nowrap px-4 py-3 font-medium"
+              class="w-full whitespace-nowrap px-4 py-3 font-medium"
               :aria-sort="ariaSortFor('name')"
             >
               <button
